@@ -21,8 +21,8 @@
   ;; If `wait?' is false, and the lock is not available, returns without executing the body.
   (defmacro with-lock ((lock &key (wait? t)) &body body)
     `(mp:with-process-lock (,lock :timeout ,(cond ((eq wait? 't) nil)  ; hush, Allegro
-						  ((eq wait? 'nil) 0)
-						  (t `(if ,wait? nil 0))))
+                                                  ((eq wait? 'nil) 0)
+                                                  (t `(if ,wait? nil 0))))
        . ,body))
   ;; For those implementations that support SMP but don't give us direct ways
   ;; to generate memory barriers, we assume that grabbing a lock suffices.
@@ -129,22 +129,22 @@
     (ccl:make-lock name))
   (defmacro with-lock ((lock &key (wait? t)) &body body)
     (let ((lock-var (gensym "LOCK-"))
-	  (wait?-var (gensym "WAIT?-"))
-	  (try-succeeded?-var (gensym "TRY-SUCCEEDED?-")))
+          (wait?-var (gensym "WAIT?-"))
+          (try-succeeded?-var (gensym "TRY-SUCCEEDED?-")))
       `(let ((,lock-var ,lock)
-	     . ,(and (not (eq wait? 't))
-		     `((,wait?-var ,wait?)
-		       (,try-succeeded?-var nil))))
-	 ,(if (eq wait? 't)
-	      `(ccl:with-lock-grabbed (,lock-var)
-		. ,body)
-	    `(unwind-protect
-		 (and (or ,wait?-var (and (ccl:try-lock ,lock-var)
-					  (setq ,try-succeeded?-var t)))
-		      (ccl:with-lock-grabbed (,lock-var)
-			. ,body))
-	       (when ,try-succeeded?-var
-		 (ccl:release-lock ,lock-var)))))))
+             . ,(and (not (eq wait? 't))
+                     `((,wait?-var ,wait?)
+                       (,try-succeeded?-var nil))))
+         ,(if (eq wait? 't)
+              `(ccl:with-lock-grabbed (,lock-var)
+                . ,body)
+            `(unwind-protect
+                 (and (or ,wait?-var (and (ccl:try-lock ,lock-var)
+                                          (setq ,try-succeeded?-var t)))
+                      (ccl:with-lock-grabbed (,lock-var)
+                        . ,body))
+               (when ,try-succeeded?-var
+                 (ccl:release-lock ,lock-var)))))))
   ;; For those implementations that support SMP but don't give us direct ways
   ;; to generate memory barriers, we assume that grabbing a lock suffices.
   (deflex *Memory-Barrier-Lock*
@@ -204,22 +204,22 @@
     (apply #'mp:make-lock :recursive t (and name `(:name ,name))))
   (defmacro with-lock ((lock &key (wait? t)) &body body)
     (let ((lock-var (gensym "LOCK-"))
-	  (wait?-var (gensym "WAIT?-"))
-	  (try-succeeded?-var (gensym "TRY-SUCCEEDED?-")))
+          (wait?-var (gensym "WAIT?-"))
+          (try-succeeded?-var (gensym "TRY-SUCCEEDED?-")))
       `(let ((,lock-var ,lock)
-	     . ,(and (not (eq wait? 't))
-		     `((,wait?-var ,wait?)
-		       (,try-succeeded?-var nil))))
-	 ,(if (eq wait? 't)
-	      `(mp:with-lock (,lock-var)
-		. ,body)
-	    `(unwind-protect
-		 (and (or ,wait?-var (and (mp:get-lock ,lock-var nil)
-					  (setq ,try-succeeded?-var t)))
-		      (mp:with-lock (,lock-var)
-			. ,body))
-  	       (when ,try-succeeded?-var
-		 (mp:giveup-lock ,lock-var)))))))
+             . ,(and (not (eq wait? 't))
+                     `((,wait?-var ,wait?)
+                       (,try-succeeded?-var nil))))
+         ,(if (eq wait? 't)
+              `(mp:with-lock (,lock-var)
+                . ,body)
+            `(unwind-protect
+                 (and (or ,wait?-var (and (mp:get-lock ,lock-var nil)
+                                          (setq ,try-succeeded?-var t)))
+                      (mp:with-lock (,lock-var)
+                        . ,body))
+               (when ,try-succeeded?-var
+                 (mp:giveup-lock ,lock-var)))))))
   (deflex *ECL-Read-Memory-Barrier-Lock*
     (mp:make-lock :name "Read Memory Barrier Lock"))
   (defmacro read-memory-barrier ()
@@ -300,8 +300,8 @@
   (pushnew ':FSet-Use-Package-Locks *features*)
   (defun lock-fset-packages ()
     (flet ((lock-pkg (pkg)
-	     (setf (excl:package-lock pkg) t)
-	     (setf (excl:package-definition-lock pkg) t)))
+             (setf (excl:package-lock pkg) t)
+             (setf (excl:package-definition-lock pkg) t)))
       (lock-pkg (symbol-package 'lookup))
       (lock-pkg (symbol-package 'fset2:lookup)))))
 
@@ -313,14 +313,14 @@
 ;;; These numbers are noncritical except possibly for small fixnums.
 
 ;;; Fixnum widths of known implementations, exclusive of sign bit:
-;;; SBCL >= 1.0.53, 64-bit:		62
-;;; ECL, 64-bit:			61
+;;; SBCL >= 1.0.53, 64-bit:             62
+;;; ECL, 64-bit:                        61
 ;;; SBCL < 1.0.53, OpenMCL/Clozure CL,
-;;;   Scieneer CL, Allegro, 64-bit:	60
-;;; Symbolics L-, I-machine; ABCL:	31
+;;;   Scieneer CL, Allegro, 64-bit:     60
+;;; Symbolics L-, I-machine; ABCL:      31
 ;;; Allegro, CMUCL, SBCL, ECL
-;;;   LispWorks (most), 32-bit:		29
-;;; CADR, LMI Lambda:			24
+;;;   LispWorks (most), 32-bit:         29
+;;; CADR, LMI Lambda:                   24
 
 (defconstant Tuple-Value-Index-Size
   (floor (+ 5 (integer-length most-positive-fixnum)) 3)
@@ -375,6 +375,37 @@
 
 ;;; ----------------
 
+(defconstant fixnum-bits (1+ (floor (log most-positive-fixnum 2))))
+
+(defun unsigned-fixnump (x)
+  (typep x `(unsigned-byte ,fixnum-bits)))
+(deftype unsigned-fixnum (&optional x)
+         `(satisfies unsigned-fixnump))
+(defconstant most-positive-unsigned-fixnum
+             (1- (expt 2 fixnum-bits)))
+
+(defmacro as-a-fixnum-wrap-around (x)
+  `(cond ((> ,x most-positive-fixnum)
+          (+ most-negative-fixnum (- ,x most-positive-fixnum)))
+         ((< ,x most-negative-fixnum)
+          (+ most-positive-fixnum (- ,x most-negative-fixnum)))
+         (t ,x)))
+(defmacro as-a-fixnum-saturation (x)
+  `(cond ((> ,x most-positive-fixnum)
+          most-positive-fixnum)
+         ((< ,x most-negative-fixnum)
+          most-negative-fixnum)
+         (t ,x)))
+(defconstant fixnum-mask
+             (let ((res 1))
+               (dotimes (i (1- fixnum-bits))
+                 (setq res (logior res (ash res 1))))
+               res))
+(defmacro as-a-fixnum-mask (x)
+  `(logand ,x fixnum-mask))
+(defmacro as-a-fixnum-identity (x) x)
+(defmacro as-a-fixnum (x) `(as-a-fixnum-identity ,x))
+
 ;;; These are macros because Allegro (still!) doesn't inline user functions.
 (defmacro hash-mix (&rest args)
   "Returns the \"mix\" of the values, where \"mix\" is a commutative and
@@ -383,17 +414,18 @@ result is a fixnum."
   ;; On implementations where we can reliably get fixnum addition and subtraction without
   ;; overflow checks at speed-3 safety-0, using them will give us better distributional properties.
   ;; On other implementations, we fall back to XOR.
-  #+(or sbcl ccl allegro lispworks)
+  #+(or ccl allegro lispworks)
   ;; To make SBCL happy, we have to build a binary tree with `the fixnum' at each level.
   (labels ((build (fn expr args)
-	     (if (null args) expr
-	       (build fn `(the fixnum (,fn ,expr (the fixnum ,(car args)))) (cdr args)))))
+    (locally (declare (optimize (speed 3) (safety 0)))
+             (if (null args) expr
+               (build fn `(the fixnum (as-a-fixnum (,fn ,expr (the fixnum ,(car args))))) (cdr args))))))
     `(locally (declare (optimize (speed 3) (safety 0)))
        ,(build '+ `(the fixnum ,(car args)) (cdr args))))
   ;; Oddly, addition doesn't seem to work on ABCL, even though it's using an `ladd' instruction; it
   ;; makes a bignum (given suitable operands) anyway.
   ;; CLASP also checks for overflow on addition.
-  #-(or sbcl ccl allegro lispworks)
+  #-(or ccl allegro lispworks)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (the fixnum (logxor . ,(mapcar (fn (x) `(the fixnum ,x)) args)))))
 
@@ -401,26 +433,27 @@ result is a fixnum."
   "Returns the result of \"unmixing\" each of `to-unmix' from `hash'.  All
 values MUST be fixnums; the result is a fixnum."
   ;; As above.
-  #+(or sbcl ccl allegro lispworks)
+  #+(or ccl allegro lispworks)
   (labels ((build (fn expr args)
-	     (if (null args) expr
-	       (build fn `(the fixnum (,fn ,expr (the fixnum ,(car args)))) (cdr args)))))
+    (locally (declare (optimize (speed 3) (safety 0)))
+             (if (null args) expr
+               (build fn `(the fixnum (as-a-fixnum (,fn ,expr (the fixnum ,(car args))))) (cdr args))))))
     `(locally (declare (optimize (speed 3) (safety 0)))
        ,(build '- `(the fixnum ,hash) to-unmix)))
-  #-(or sbcl ccl allegro lispworks)
+  #-(or ccl allegro lispworks)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (the fixnum (logxor (the fixnum ,hash) . ,(mapcar (fn (x) `(the fixnum ,x)) to-unmix)))))
 
 (defmacro hash-multiply (ha hb)
   "Returns the product of `ha' and `hb' modulo 2^fixnum_length.  Both MUST be
 fixnums; the result is a fixnum."
-  #+(or sbcl allegro lispworks)
+  #+(or allegro lispworks)
   `(locally (declare (optimize (speed 3) (safety 0)))
-     (the fixnum (* (the fixnum ,ha) (the fixnum ,hb))))
-  #-(or sbcl allegro lispworks)
+     (the fixnum (as-a-fixnum (* (the fixnum ,ha) (the fixnum ,hb)))))
+  #-(or allegro lispworks)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (let ((prod (* (the fixnum ,ha) (the fixnum ,hb)))
-	   ((fprod (the fixnum (logand most-positive-fixnum prod)))))
+           ((fprod (the fixnum (logand most-positive-fixnum prod)))))
        (if (< prod 0) (- fprod) fprod))))
 
 (define-modify-macro hash-mixf (&rest args)
@@ -456,15 +489,15 @@ fixnums; the result is a fixnum."
 (defmacro gen (op &rest args)
   ;; Bind nontrivial arguments to variables so `op' is the only operation affected.
   (let ((vars (mapcar (lambda (x) (and (not (or (symbolp x) (numberp x)))
-				       (gensym "VAR-")))
-		      args)))
+                                       (gensym "VAR-")))
+                      args)))
     `(let ,(cl:remove nil (mapcar (lambda (var arg)
-				    (and var `(,var ,arg)))
-				  vars args))
+                                    (and var `(,var ,arg)))
+                                  vars args))
        (locally (declare #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note)
-			 #-sbcl (optimize (speed 1) (safety 1)))  ; is this needed?
-	 (,op . ,(mapcar (lambda (var arg) (or var arg))
-			 vars args))))))
+                         #-sbcl (optimize (speed 1) (safety 1)))  ; is this needed?
+         (,op . ,(mapcar (lambda (var arg) (or var arg))
+                         vars args))))))
 
 (defmacro muffle-notes (&body body)
   `(locally (declare #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
