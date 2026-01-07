@@ -1,3 +1,11 @@
+## Why this fork? ##
+
+This fork exists because fset fails on sbcl when safety is set to 3 - see [this discussion](https://github.com/slburson/fset/issues/100#event-21762548245).
+As suggested by fset's author, Code/port.lisp has been modified, so that hash-mix/hash-unmix/hash-multiply use the generic branch in sbcl, i.e., the branch that uses XOR instead of addition. It currently passes the following:
+```
+rm -rf ~/.cache/common-lisp ; sbcl --non-interactive --eval "(progn (sb-ext:restrict-compiler-policy 'safety 3) (ql:quickload :FSet) (asdf:test-system :FSet))"
+```
+
 ## Introduction ##
 
 FSet is a functional set-theoretic collections library.  _Functional_ means that all
