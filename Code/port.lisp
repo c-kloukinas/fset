@@ -375,37 +375,6 @@
 
 ;;; ----------------
 
-(defconstant fixnum-bits (1+ (floor (log most-positive-fixnum 2))))
-
-(defun unsigned-fixnump (x)
-  (typep x `(unsigned-byte ,fixnum-bits)))
-(deftype unsigned-fixnum (&optional x)
-         `(satisfies unsigned-fixnump))
-(defconstant most-positive-unsigned-fixnum
-             (1- (expt 2 fixnum-bits)))
-
-(defmacro as-a-fixnum-wrap-around (x)
-  `(cond ((> ,x most-positive-fixnum)
-          (+ most-negative-fixnum (- ,x most-positive-fixnum)))
-         ((< ,x most-negative-fixnum)
-          (+ most-positive-fixnum (- ,x most-negative-fixnum)))
-         (t ,x)))
-(defmacro as-a-fixnum-saturation (x)
-  `(cond ((> ,x most-positive-fixnum)
-          most-positive-fixnum)
-         ((< ,x most-negative-fixnum)
-          most-negative-fixnum)
-         (t ,x)))
-(defconstant fixnum-mask
-             (let ((res 1))
-               (dotimes (i (1- fixnum-bits))
-                 (setq res (logior res (ash res 1))))
-               res))
-(defmacro as-a-fixnum-mask (x)
-  `(logand ,x fixnum-mask))
-(defmacro as-a-fixnum-identity (x) x)
-(defmacro as-a-fixnum (x) `(as-a-fixnum-identity ,x))
-
 ;;; These are macros because Allegro (still!) doesn't inline user functions.
 (defmacro hash-mix (&rest args)
   "Returns the \"mix\" of the values, where \"mix\" is a commutative and
@@ -419,7 +388,7 @@ result is a fixnum."
   (labels ((build (fn expr args)
     (locally (declare (optimize (speed 3) (safety 0)))
              (if (null args) expr
-               (build fn `(the fixnum (as-a-fixnum (,fn ,expr (the fixnum ,(car args))))) (cdr args))))))
+               (build fn `(the fixnum (,fn ,expr (the fixnum ,(car args)))) (cdr args))))))
     `(locally (declare (optimize (speed 3) (safety 0)))
        ,(build '+ `(the fixnum ,(car args)) (cdr args))))
   ;; Oddly, addition doesn't seem to work on ABCL, even though it's using an `ladd' instruction; it
@@ -437,7 +406,7 @@ values MUST be fixnums; the result is a fixnum."
   (labels ((build (fn expr args)
     (locally (declare (optimize (speed 3) (safety 0)))
              (if (null args) expr
-               (build fn `(the fixnum (as-a-fixnum (,fn ,expr (the fixnum ,(car args))))) (cdr args))))))
+               (build fn `(the fixnum (,fn ,expr (the fixnum ,(car args)))) (cdr args))))))
     `(locally (declare (optimize (speed 3) (safety 0)))
        ,(build '- `(the fixnum ,hash) to-unmix)))
   #-(or ccl allegro lispworks)
