@@ -1,3 +1,5 @@
+Fset's original repo no longer has an issue with safety set to 3 in sbcl - thus, this repo no longer has a purpose.
+
 ## Why this fork? ##
 
 This fork exists because fset fails on sbcl when safety is set to 3 - see [this discussion](https://github.com/slburson/fset/issues/100#event-21762548245).
